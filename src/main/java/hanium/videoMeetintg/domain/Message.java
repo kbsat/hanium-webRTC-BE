@@ -15,6 +15,6 @@ public class Message {
 
     @Lob
     private String contents;
-    
+
     private LocalDateTime send_date;
 }
