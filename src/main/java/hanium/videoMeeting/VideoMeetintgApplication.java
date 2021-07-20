@@ -1,4 +1,4 @@
-package hanium.videoMeetintg;
+package hanium.videoMeeting;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

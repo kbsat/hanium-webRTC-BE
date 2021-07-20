@@ -1,4 +1,4 @@
-package hanium.videoMeetintg.domain;
+package hanium.videoMeeting.domain;
 
 import lombok.Getter;
 

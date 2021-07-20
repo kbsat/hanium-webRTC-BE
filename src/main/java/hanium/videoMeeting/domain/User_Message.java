@@ -1,7 +1,6 @@
-package hanium.videoMeetintg.domain;
+package hanium.videoMeeting.domain;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 

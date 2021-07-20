@@ -1,4 +1,4 @@
-package hanium.videoMeetintg.advice;
+package hanium.videoMeeting.advice;
 
 public class ExceptionAdvice {
 }
