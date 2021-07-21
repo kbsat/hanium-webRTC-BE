@@ -1,10 +1,13 @@
 package hanium.videoMeeting.domain;
 
+import hanium.videoMeeting.DTO.CreateUserDTO;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.apache.tomcat.jni.Local;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -30,9 +33,12 @@ public class User {
     //@Column(nullable = false)
     private boolean state;
 
-    public static User createUser() {
+    public static User createUser(CreateUserDTO createUserDTO) {
         User user=new User();
-        user.name="영구";
+        user.name=createUserDTO.getName();
+        user.create_date= LocalDateTime.now();
+        user.email= createUserDTO.getEmail();
+        user.password= createUserDTO.getPassword();
         return user;
     }
 }
