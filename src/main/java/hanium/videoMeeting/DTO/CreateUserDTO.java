@@ -1,5 +1,6 @@
 package hanium.videoMeeting.DTO;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import javax.validation.constraints.Size;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class CreateUserDTO {
     @NotBlank(message = "이메일을 입력해주세요")
     @Email(message = "이메일 형식으로 장석해주세요")
