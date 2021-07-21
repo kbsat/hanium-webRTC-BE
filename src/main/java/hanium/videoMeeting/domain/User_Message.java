@@ -16,7 +16,7 @@ public class User_Message {
     private User sender;
 
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="sender_id")
+    @JoinColumn(name="receiver_id")
     private User receiver;
 
     @ManyToOne(fetch=FetchType.LAZY)

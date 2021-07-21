@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class VideoMeetintgApplication {
+public class VideoMeetingApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(VideoMeetintgApplication.class, args);
+		SpringApplication.run(VideoMeetingApplication.class, args);
 	}
 
 }

@@ -18,15 +18,21 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    //@Column(nullable = false)
     private String password;
 
-    @Column(nullable = false,unique = true)
+    //@Column(nullable = false,unique = true)
     private String email;
 
-    @Column(nullable = false)
+    //@Column(nullable = false)
     private LocalDateTime create_date;
 
-    @Column(nullable = false)
+    //@Column(nullable = false)
     private boolean state;
+
+    public static User createUser() {
+        User user=new User();
+        user.name="영구";
+        return user;
+    }
 }
