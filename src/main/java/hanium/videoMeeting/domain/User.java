@@ -41,4 +41,12 @@ public class User {
         user.password= createUserDTO.getPassword();
         return user;
     }
+
+    public void setName(String name) {
+        this.name=name;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }
