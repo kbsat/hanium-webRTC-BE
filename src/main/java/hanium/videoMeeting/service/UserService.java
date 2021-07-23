@@ -3,10 +3,7 @@ package hanium.videoMeeting.service;
 import hanium.videoMeeting.DTO.CreateUserDTO;
 import hanium.videoMeeting.DTO.UpdateNameDto;
 import hanium.videoMeeting.DTO.UpdatePasswordDTO;
-import hanium.videoMeeting.advice.exception.CurrentPasswordDiffException;
-import hanium.videoMeeting.advice.exception.ExistedEmailException;
-import hanium.videoMeeting.advice.exception.ExistedNameException;
-import hanium.videoMeeting.advice.exception.PasswordDiffException;
+import hanium.videoMeeting.advice.exception.*;
 import hanium.videoMeeting.domain.User;
 import hanium.videoMeeting.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +30,6 @@ public class UserService {
             throw new PasswordDiffException();
         }
         createUserDTO.setPassword(bCryptPasswordEncoder.encode(createUserDTO.getPassword()));
-        System.out.println(createUserDTO.getPassword());
         User save = userRepository.save(User.createUser(createUserDTO));
         return save.getId();
     }
@@ -51,14 +47,28 @@ public class UserService {
     @Transactional
     public void updatePassword(UpdatePasswordDTO updatePasswordDTO,Long id) {
         User user = userRepository.getById(id);
-        if (!bCryptPasswordEncoder.encode(updatePasswordDTO.getCurrent_password()).
-                equals(bCryptPasswordEncoder.encode(user.getPassword()))) {
+        if (!bCryptPasswordEncoder.matches(updatePasswordDTO.getCurrent_password(),user.getPassword())) {
             throw new CurrentPasswordDiffException();
+        } else if (bCryptPasswordEncoder.matches(updatePasswordDTO.getNew_password(),user.getPassword())) {
+            throw new SamePasswordException();
         }
         if (!updatePasswordDTO.getNew_password().equals(updatePasswordDTO.getCheck_new_password())) {
             throw new PasswordDiffException();
         }
         user.setPassword(bCryptPasswordEncoder.encode(updatePasswordDTO.getNew_password()));
+        System.out.println(user.getPassword());
+    }
+
+    public User findUserByName(String name) {
+        return userRepository.findByName(name).orElseThrow(NoSuchUserException::new);
+    }
+
+    public User findUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElseThrow(NoSuchUserException::new);
+    }
+
+    public User findUserById(Long id) {
+        return userRepository.findById(id).orElseThrow(NoSuchUserException::new);
     }
 
 
