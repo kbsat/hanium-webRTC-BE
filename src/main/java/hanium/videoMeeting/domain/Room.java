@@ -23,7 +23,7 @@ public class Room {
     private String password;
 
     @Column(nullable = false)
-    private String url;
+    private String session;
 
     @Column(nullable = false)
     private long people_num;
