@@ -11,6 +11,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -64,13 +66,18 @@ public class UserService {
     }
 
     public User findUserByEmail(String email) {
+        System.out.println(email);
         return userRepository.findByEmail(email).orElseThrow(NoSuchUserException::new);
     }
+
 
     public User findUserById(Long id) {
         return userRepository.findById(id).orElseThrow(NoSuchUserException::new);
     }
 
+    public List<User> findAllUser() {
+        return userRepository.findAll();
+    }
 
 
 
