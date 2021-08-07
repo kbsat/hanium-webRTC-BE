@@ -18,4 +18,7 @@ public class Join_Room {
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="room_id")
     private Room room_id;
+
+    @Column(nullable = false)
+    private String token;
 }
