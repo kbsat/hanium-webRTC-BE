@@ -5,7 +5,6 @@ import hanium.videoMeeting.advice.exception.ExistedRoomTitleException;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.repository.RoomRepository;
 import io.openvidu.java.client.*;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -61,12 +59,12 @@ class RoomServiceTest {
     public void createDuplicateTitle() throws Exception {
         //given
         RoomDto roomDto = new RoomDto("duplicationTest","12345");
-        Long roomId = roomService.createRoom(roomDto);
+        roomService.createRoom(roomDto);
 
         //when
         RoomDto dupRoomDto = new RoomDto("duplicationTest","789456");
         try{
-            Long dupRoomId = roomService.createRoom(roomDto);
+            roomService.createRoom(dupRoomDto);
         } catch (ExistedRoomTitleException e){
             return;
         }
@@ -74,6 +72,35 @@ class RoomServiceTest {
         //then
         fail("중복 예외가 발생해야합니다.");
 
+    }
+
+    @DisplayName("방 참가 및 토큰 생성 예제")
+    @Test
+    public void joinRoom() throws Exception {
+        //given
+        RoomDto roomDto = new RoomDto("test","12345");
+        roomService.createRoom(roomDto);
+
+        //when
+        String token = roomService.join(roomDto);
+
+        //then
+        assertThat(token).isNotNull();
+        System.out.println(token);
+    }
+
+    @Test
+    public void openviduSessionList() throws Exception {
+        //given
+        RoomDto roomDto = new RoomDto("test","12345");
+        roomService.createRoom(roomDto);
+        List<Session> activeSessions = openVidu.getActiveSessions();
+
+        activeSessions.forEach(s -> System.out.println(s.getSessionId()));
+
+        //when
+
+        //then
     }
 
 

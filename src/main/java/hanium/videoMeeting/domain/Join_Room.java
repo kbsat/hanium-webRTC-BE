@@ -21,4 +21,10 @@ public class Join_Room {
 
     @Column(nullable = false)
     private String token;
+
+    public Join_Room(User user, Room room, String token) {
+        this.user_id = user;
+        this.room_id = room;
+        this.token = token;
+    }
 }
