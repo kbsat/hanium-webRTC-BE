@@ -2,6 +2,7 @@ package hanium.videoMeeting.Config.jwt;
 
 import hanium.videoMeeting.Config.auth.PrincipalDetails;
 import hanium.videoMeeting.Config.auth.PrincipalDetailsService;
+import hanium.videoMeeting.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -38,7 +39,7 @@ public class JwtTokenProvider { // JWT 토큰을 생성 및 검증 모듈
     }
 
     // Jwt 토큰 생성
-    public String createToken(String userPk, List<String> roles) {
+    public String createToken(String userPk, Role roles) {
         Claims claims = Jwts.claims().setSubject(userPk);
         claims.put("roles", roles);
         Date now = new Date();
