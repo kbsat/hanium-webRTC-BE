@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
+import static hanium.videoMeeting.domain.Role.ROLE_USER;
+
 @Getter
 @Entity
 @NoArgsConstructor(access= AccessLevel.PROTECTED)
@@ -41,7 +43,7 @@ public class User {
         user.create_date= LocalDateTime.now();
         user.email= createUserDTO.getEmail();
         user.password= createUserDTO.getPassword();
-        user.role = Role.USER;
+        user.role = ROLE_USER;
         return user;
     }
 
