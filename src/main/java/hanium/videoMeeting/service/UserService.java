@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -61,8 +62,8 @@ public class UserService {
         System.out.println(user.getPassword());
     }
 
-    public User findUserByName(String name) {
-        return userRepository.findByName(name).orElseThrow(NoSuchUserException::new);
+    public Optional<User> findUserByName(String name) {
+        return userRepository.findByName(name);
     }
 
     public User findUserByEmail(String email) {

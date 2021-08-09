@@ -2,6 +2,7 @@ package hanium.videoMeeting.controller;
 
 import hanium.videoMeeting.Config.jwt.JwtTokenProvider;
 import hanium.videoMeeting.DTO.CreateUserDTO;
+import hanium.videoMeeting.DTO.LoginRequestDto;
 import hanium.videoMeeting.DTO.response.Result;
 import hanium.videoMeeting.advice.exception.PasswordWrongException;
 import hanium.videoMeeting.domain.User;
@@ -23,9 +24,9 @@ public class SignController {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @PostMapping("/signin")
-    public Result signIn(@RequestParam String id, @RequestParam String password) {
-        User user = userService.findUserByEmail(id);
-        if (!bCryptPasswordEncoder.matches(password, user.getPassword()))
+    public Result signIn(@RequestBody LoginRequestDto loginRequestDto) {
+        User user = userService.findUserByEmail(loginRequestDto.getId());
+        if (!bCryptPasswordEncoder.matches(loginRequestDto.getPw(), user.getPassword()))
             throw new PasswordWrongException();
 
         return responseService.getSingleResult(jwtTokenProvider.createToken(String.valueOf(user.getId()), user.getRole()));

@@ -22,13 +22,13 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    //@Column(nullable = false)
+    @Column(nullable = false)
     private String password;
 
-    //@Column(nullable = false,unique = true)
+    @Column(nullable = false,unique = true)
     private String email;
 
-    //@Column(nullable = false)
+    @Column(nullable = false)
     private LocalDateTime create_date;
 
     //@Column(nullable = false)
@@ -36,6 +36,8 @@ public class User {
 
     @Enumerated(value = EnumType.STRING)
     private Role role;
+
+    private String image;
 
     public static User createUser(CreateUserDTO createUserDTO) {
         User user=new User();
