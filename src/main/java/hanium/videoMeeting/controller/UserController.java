@@ -38,7 +38,7 @@ public class UserController {
     }
 
  */
-
+/*
     @GetMapping(value = "/user")
     public Result findUser() {
         // SecurityContext에서 인증받은 회원의 정보를 얻어온다.
@@ -47,6 +47,16 @@ public class UserController {
         System.out.println(id);
         // 결과데이터가 단일건인경우 getSingleResult를 이용해서 결과를 출력한다.
         return responseService.getSingleResult(userService.findUserByEmail(id));
+    }
+
+ */
+    @GetMapping(value = "/user")
+    public Result findUser(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+        // SecurityContext에서 인증받은 회원의 정보를 얻어온다.
+        User user = principalDetails.getUser();
+        System.out.println(user.getId());
+        // 결과데이터가 단일건인경우 getSingleResult를 이용해서 결과를 출력한다.
+        return responseService.getSuccessResult();
     }
 
 }

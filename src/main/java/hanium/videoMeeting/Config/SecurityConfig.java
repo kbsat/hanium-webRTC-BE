@@ -2,6 +2,8 @@ package hanium.videoMeeting.Config;
 
 import hanium.videoMeeting.Config.jwt.JwtAuthenticationFilter;
 import hanium.videoMeeting.Config.jwt.JwtTokenProvider;
+import hanium.videoMeeting.Config.security.CustomAccessDeniedHandler;
+import hanium.videoMeeting.Config.security.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,7 +47,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .antMatchers(HttpMethod.GET, "/api/user/**")
                 .access("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN')")
+                .antMatchers(HttpMethod.GET,"/api2/admin")
+                .access("hasRole('ROLE_ADMIN')")
                 .anyRequest().permitAll()
+                .and()
+                .exceptionHandling().accessDeniedHandler(new CustomAccessDeniedHandler())
+                .and()
+                .exceptionHandling().authenticationEntryPoint(new CustomAuthenticationEntryPoint())
                 .and()
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
     }
