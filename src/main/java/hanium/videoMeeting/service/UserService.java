@@ -53,7 +53,7 @@ public class UserService {
         if (!bCryptPasswordEncoder.matches(updatePasswordDTO.getCurrent_password(),user.getPassword())) {
             throw new CurrentPasswordDiffException();
         } else if (bCryptPasswordEncoder.matches(updatePasswordDTO.getNew_password(),user.getPassword())) {
-            throw new SamePasswordException();
+            throw new PasswordNoChangeException();
         }
         if (!updatePasswordDTO.getNew_password().equals(updatePasswordDTO.getCheck_new_password())) {
             throw new PasswordDiffException();

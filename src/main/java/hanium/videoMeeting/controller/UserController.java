@@ -8,9 +8,6 @@ import hanium.videoMeeting.DTO.UpdateNameDto;
 import hanium.videoMeeting.DTO.UpdatePasswordDTO;
 import hanium.videoMeeting.DTO.response.Result;
 import hanium.videoMeeting.advice.exception.DuplicateNameException;
-import hanium.videoMeeting.advice.exception.PasswordDiffException;
-import hanium.videoMeeting.advice.exception.PasswordNoChangeException;
-import hanium.videoMeeting.advice.exception.PasswordWrongException;
 import hanium.videoMeeting.domain.User;
 import hanium.videoMeeting.service.ResponseService;
 import hanium.videoMeeting.service.UserService;
@@ -29,7 +26,6 @@ public class UserController {
 
     private final UserService userService;
     private final ResponseService responseService;
-    private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @GetMapping("/user/all")
@@ -62,13 +58,6 @@ public class UserController {
     @PostMapping("/user/updatepassword")
     public Result updatePassword(@AuthenticationPrincipal PrincipalDetails principalDetails, @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         User user = principalDetails.getUser();
-        if (!bCryptPasswordEncoder.matches(updatePasswordDTO.getCurrent_password(),user.getPassword())) {
-            throw new PasswordWrongException();
-        } else if (!updatePasswordDTO.getNew_password().equals(updatePasswordDTO.getCheck_new_password())) {
-            throw new PasswordDiffException();
-        } else if (bCryptPasswordEncoder.matches(updatePasswordDTO.getNew_password(),user.getPassword())) {
-            throw new PasswordNoChangeException();
-        }
         userService.updatePassword(updatePasswordDTO, user.getId());
         return responseService.getSuccessResult();
     }
