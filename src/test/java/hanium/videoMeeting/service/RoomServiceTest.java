@@ -28,10 +28,10 @@ class RoomServiceTest {
     public void createRoomTest() throws Exception {
         //given
         RoomDto roomDto = new RoomDto("test","12345");
-        Long roomId = roomService.createRoom(roomDto);
+        String session = roomService.create(roomDto,1L);
 
         //when
-        Room createdRoom = roomRepository.findById(roomId).orElse(null);
+        Room createdRoom = roomRepository.findBySession(session).orElse(null);
 
         //then
         assertThat(createdRoom).isNotNull();
@@ -59,12 +59,12 @@ class RoomServiceTest {
     public void createDuplicateTitle() throws Exception {
         //given
         RoomDto roomDto = new RoomDto("duplicationTest","12345");
-        roomService.createRoom(roomDto);
+        roomService.create(roomDto,1L);
 
         //when
         RoomDto dupRoomDto = new RoomDto("duplicationTest","789456");
         try{
-            roomService.createRoom(dupRoomDto);
+            roomService.create(dupRoomDto,1L);
         } catch (ExistedRoomTitleException e){
             return;
         }
@@ -79,10 +79,10 @@ class RoomServiceTest {
     public void joinRoom() throws Exception {
         //given
         RoomDto roomDto = new RoomDto("test","12345");
-        roomService.createRoom(roomDto);
+        roomService.create(roomDto,1L);
 
         //when
-        String token = roomService.join(roomDto);
+        String token = roomService.join(roomDto,1L);
 
         //then
         assertThat(token).isNotNull();
@@ -93,7 +93,7 @@ class RoomServiceTest {
     public void openviduSessionList() throws Exception {
         //given
         RoomDto roomDto = new RoomDto("test","12345");
-        roomService.createRoom(roomDto);
+        roomService.create(roomDto,1L);
         List<Session> activeSessions = openVidu.getActiveSessions();
 
         activeSessions.forEach(s -> System.out.println(s.getSessionId()));

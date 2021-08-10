@@ -4,10 +4,13 @@ import hanium.videoMeeting.DTO.RoomDto;
 import hanium.videoMeeting.advice.exception.ExistedRoomTitleException;
 import hanium.videoMeeting.advice.exception.NoRoomSessionException;
 import hanium.videoMeeting.advice.exception.NoSuchRoomException;
+import hanium.videoMeeting.advice.exception.NoSuchUserException;
 import hanium.videoMeeting.domain.Join_Room;
 import hanium.videoMeeting.domain.Room;
+import hanium.videoMeeting.domain.User;
 import hanium.videoMeeting.repository.JoinRoomRepository;
 import hanium.videoMeeting.repository.RoomRepository;
+import hanium.videoMeeting.repository.UserRepository;
 import io.openvidu.java.client.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,23 +27,23 @@ import java.util.Optional;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final UserRepository userRepository;
     private final JoinRoomRepository joinRoomRepository;
     private final OpenVidu openVidu;
 
     @Transactional
-    public Long createRoom(RoomDto roomDto) {
+    public String create(RoomDto roomDto, Long userId) {
 
-        /**
-         * TODO
-         * 방 만드는 사람을 확인 후 이를 연결해주는 작업 필요. ( Room의 host_id 연관관계 추가해야함 )
-         */
+        User host = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
 
         // 일치하는 방제가 있는지 확인
         if (roomRepository.findByTitle(roomDto.getTitle()).isPresent()) {
             throw new ExistedRoomTitleException();
         }
 
-        Room room = new Room(roomDto.getTitle(), roomDto.getPassword());
+        // host와 title, password를 입력하여 방 생성
+        Room room = new Room(host, roomDto.getTitle(), roomDto.getPassword());
+
         // 세션 생성
         try {
             Session session = openVidu.createSession();
@@ -56,16 +59,19 @@ public class RoomService {
             ne.printStackTrace();
         }
 
-        return room.getId();
+        return room.getSession();
     }
 
 
-    public String join(RoomDto roomDto) {
+    @Transactional
+    public String join(RoomDto roomDto, Long userId) {
         Room room = roomRepository.findByTitle(roomDto.getTitle()).orElseThrow(NoSuchRoomException::new);
+        User user = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
 
         if (room.getSession() == null) {
             throw new NoRoomSessionException("세션을 할당받지 못한 Room 입니다.");
         }
+
         ConnectionProperties connectionProperties = new ConnectionProperties.Builder()
                 .type(ConnectionType.WEBRTC)
                 .role(OpenViduRole.PUBLISHER)
@@ -78,27 +84,50 @@ public class RoomService {
                 .findFirst()
                 .orElseThrow();
 
-        if(session == null){
+        if (session == null) {
             throw new NoRoomSessionException();
         }
         try {
             String token = session.createConnection(connectionProperties).getToken();
 
-            log.info("[{}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
+            log.info("[Room : {}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
 
+            Join_Room joinRoom = new Join_Room(user, room, token);
+            joinRoomRepository.save(joinRoom);
             return token;
         } catch (OpenViduJavaClientException | OpenViduHttpException e) {
             e.printStackTrace();
         }
         return null;
+    }
 
-        /**
-         * TODO
-         * Join_Room 객체 하나 생성해야함. ( User와 Room을 연결 - 어떤 방에 연결되어있는지 확인 용)
-         * Room 객체의 people_num도 업데이트 필요
-         */
+    @Transactional
+    public void delete(Room room) {
+        // CASCADE 설정이 되어있으므로 room을 삭제하면 이와 연관된 Join_Room도 삭제됨
+
+        List<Session> activeSessions = openVidu.getActiveSessions();
+        Optional<Session> openViduSession = activeSessions.stream().filter(s -> s.getSessionId().equals(room.getSession())).findFirst();
+        try {
+            openViduSession.orElseThrow().close();
+        } catch (OpenViduJavaClientException | OpenViduHttpException e) {
+            throw new NoRoomSessionException();
+        }
+        roomRepository.delete(room);
+        // 세션 삭제 처리
 
 
+    }
+
+    public Room findRoomById(Long roomId){
+        return roomRepository.findById(roomId).orElseThrow(NoSuchRoomException::new);
+    }
+
+    public Room findRoomByTitle(String title){
+        return roomRepository.findByTitle(title).orElseThrow(NoSuchRoomException::new);
+    }
+
+    public Room findRoomBySession(String session){
+        return roomRepository.findBySession(session).orElseThrow(NoSuchRoomException::new);
     }
 
 }
