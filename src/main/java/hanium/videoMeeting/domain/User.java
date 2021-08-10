@@ -4,11 +4,12 @@ import hanium.videoMeeting.DTO.CreateUserDTO;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.apache.tomcat.jni.Local;
+
 
 import javax.persistence.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import static hanium.videoMeeting.domain.Role.ROLE_USER;
 
 @Getter
 @Entity
@@ -21,17 +22,22 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    //@Column(nullable = false)
+    @Column(nullable = false)
     private String password;
 
-    //@Column(nullable = false,unique = true)
+    @Column(nullable = false,unique = true)
     private String email;
 
-    //@Column(nullable = false)
+    @Column(nullable = false)
     private LocalDateTime create_date;
 
     //@Column(nullable = false)
     private boolean state;
+
+    @Enumerated(value = EnumType.STRING)
+    private Role role;
+
+    private String image;
 
     public static User createUser(CreateUserDTO createUserDTO) {
         User user=new User();
@@ -39,6 +45,7 @@ public class User {
         user.create_date= LocalDateTime.now();
         user.email= createUserDTO.getEmail();
         user.password= createUserDTO.getPassword();
+        user.role = ROLE_USER;
         return user;
     }
 

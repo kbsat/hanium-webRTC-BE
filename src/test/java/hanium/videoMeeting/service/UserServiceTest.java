@@ -52,15 +52,15 @@ class UserServiceTest {
         User result=userService.findUserById(user.getId());
         System.out.println(result.getPassword());
         System.out.println(bCryptPasswordEncoder.encode("12345"));
+
         //when
         userService.updateName(updateNameDto,user.getId());
         userService.updatePassword(updatePasswordDTO, user.getId());
+
         //then
         assertThat(result.getName()).isEqualTo("change");
         assertThat(bCryptPasswordEncoder.matches("1234", result.getPassword())).isEqualTo(true);
         assertThat(bCryptPasswordEncoder.matches("12345", result.getPassword())).isEqualTo(false);
-
-
 
     }
 

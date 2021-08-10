@@ -4,15 +4,12 @@ spring:
     username: hanium0098
     password: qwerty2!
     driver-class-name: org.mariadb.jdbc.Driver
-
-
-
   jpa:
     hibernate:
       ddl-auto: none
     properties:
       hibernate:
-        show_sql: true
+        show_sql:
         format_sql: true
 logging.level:
   org.hibernate.SQL: debug
@@ -20,3 +17,5 @@ logging.level:
 openvidu:
   url: https://15.165.67.176:443/
   secret: MY_SECRET
+
+secret: hanium0098

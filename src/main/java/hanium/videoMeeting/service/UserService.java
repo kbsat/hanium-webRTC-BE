@@ -11,6 +11,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -50,7 +53,7 @@ public class UserService {
         if (!bCryptPasswordEncoder.matches(updatePasswordDTO.getCurrent_password(),user.getPassword())) {
             throw new CurrentPasswordDiffException();
         } else if (bCryptPasswordEncoder.matches(updatePasswordDTO.getNew_password(),user.getPassword())) {
-            throw new SamePasswordException();
+            throw new PasswordNoChangeException();
         }
         if (!updatePasswordDTO.getNew_password().equals(updatePasswordDTO.getCheck_new_password())) {
             throw new PasswordDiffException();
@@ -59,18 +62,23 @@ public class UserService {
         System.out.println(user.getPassword());
     }
 
-    public User findUserByName(String name) {
-        return userRepository.findByName(name).orElseThrow(NoSuchUserException::new);
+    public Optional<User> findUserByName(String name) {
+        return userRepository.findByName(name);
     }
 
     public User findUserByEmail(String email) {
+        System.out.println(email);
         return userRepository.findByEmail(email).orElseThrow(NoSuchUserException::new);
     }
+
 
     public User findUserById(Long id) {
         return userRepository.findById(id).orElseThrow(NoSuchUserException::new);
     }
 
+    public List<User> findAllUser() {
+        return userRepository.findAll();
+    }
 
 
 
