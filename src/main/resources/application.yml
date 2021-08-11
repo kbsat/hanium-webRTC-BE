@@ -14,5 +14,8 @@ spring:
 logging.level:
   org.hibernate.SQL: debug
 
-secret: hanium0098
+openvidu:
+  url: https://15.165.67.176:443/
+  secret: MY_SECRET
 
+secret: hanium0098

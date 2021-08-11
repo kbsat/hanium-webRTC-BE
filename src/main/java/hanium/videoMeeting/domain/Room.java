@@ -1,19 +1,24 @@
 package hanium.videoMeeting.domain;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "room_id")
     private long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String title;
 
     @Column(nullable = false)
@@ -23,14 +28,35 @@ public class Room {
     private String password;
 
     @Column(nullable = false)
-    private String url;
+    private String session;
 
     @Column(nullable = false)
     private long people_num;
 
-    /*
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="host_id")
     private User host;
-     */
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
+    private List<Join_Room> joinRooms = new ArrayList<>();
+
+    public Room(User host, String title, String password) {
+        this.host = host;
+
+        this.title = title;
+        this.password = password;
+        this.start_time = LocalDateTime.now();
+        this.session = null;
+        this.people_num = 0;
+    }
+
+    public void connectSession(String sessionId){
+        this.session = sessionId;
+    }
+
+    // TODO 동시성 문제가 발생하지 않을까?
+    public void plusJoinPeople(){
+        this.people_num += 1;
+    }
 
 }
