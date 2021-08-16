@@ -3,6 +3,7 @@ package hanium.videoMeeting.advice;
 import hanium.videoMeeting.DTO.response.Result;
 import hanium.videoMeeting.advice.exception.*;
 import hanium.videoMeeting.service.ResponseService;
+import io.openvidu.java.client.OpenViduException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -75,6 +76,30 @@ public class ExceptionAdvice {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result PasswordDiffException() {
         return responseService.getFailResult(-1010, "비밀번호와 확인 비밀번호가 다릅니다");
+    }
+
+    @ExceptionHandler(OpenViduException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result OpenviduException() {
+        return responseService.getFailResult(-2000, "오픈비두 서버 오류가 발생했습니다.");
+    }
+
+    @ExceptionHandler(ExistedRoomTitleException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result ExistedRoomTitleException() {
+        return responseService.getFailResult(-2001, "중복된 방 제목이 존재합니다.");
+    }
+
+    @ExceptionHandler(NoRoomSessionException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result NoRoomSessionException() {
+        return responseService.getFailResult(-2002, "방에 세션이 존재하지 않습니다.");
+    }
+
+    @ExceptionHandler(NoSuchSessionException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result NoSuchSessionException() {
+        return responseService.getFailResult(-2003, "오픈비두 클라이언트에서 해당 세션을 찾을 수 없습니다.(오픈비두 서버를 확인하세요)");
     }
 
 
