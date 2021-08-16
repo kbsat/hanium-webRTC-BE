@@ -102,5 +102,10 @@ public class ExceptionAdvice {
         return responseService.getFailResult(-2003, "오픈비두 클라이언트에서 해당 세션을 찾을 수 없습니다.(오픈비두 서버를 확인하세요)");
     }
 
+    @ExceptionHandler(NoSuchRoomException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result NoSuchRoomException() {
+        return responseService.getFailResult(-2004, "해당 정보와 일치하는 방을 찾을 수 없습니다.");
+    }
 
 }
