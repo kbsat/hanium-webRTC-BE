@@ -1,10 +1,7 @@
 package hanium.videoMeeting.service;
 
 import hanium.videoMeeting.DTO.RoomDto;
-import hanium.videoMeeting.advice.exception.ExistedRoomTitleException;
-import hanium.videoMeeting.advice.exception.NoRoomSessionException;
-import hanium.videoMeeting.advice.exception.NoSuchRoomException;
-import hanium.videoMeeting.advice.exception.NoSuchUserException;
+import hanium.videoMeeting.advice.exception.*;
 import hanium.videoMeeting.domain.Join_Room;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.domain.User;
@@ -54,9 +51,13 @@ public class RoomService {
         } catch (OpenViduException e) {
             log.warn("오픈비두 할당 오류가 발생했습니다.");
             e.printStackTrace();
+
+            throw new OpenViduServerException();
         } catch (NullPointerException ne) {
             log.warn("오픈비두에서 세션을 생성하지 못했습니다.");
             ne.printStackTrace();
+
+            throw new OpenViduServerException();
         }
 
         return room.getSession();
@@ -67,9 +68,10 @@ public class RoomService {
     public String join(RoomDto roomDto, Long userId) {
         Room room = roomRepository.findByTitle(roomDto.getTitle()).orElseThrow(NoSuchRoomException::new);
         User user = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+        String token = null;
 
         if (room.getSession() == null) {
-            throw new NoRoomSessionException("세션을 할당받지 못한 Room 입니다.");
+            throw new NoRoomSessionException();
         }
 
         ConnectionProperties connectionProperties = new ConnectionProperties.Builder()
@@ -88,17 +90,21 @@ public class RoomService {
             throw new NoRoomSessionException();
         }
         try {
-            String token = session.createConnection(connectionProperties).getToken();
+            token = session.createConnection(connectionProperties).getToken();
 
             log.info("[Room : {}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
 
             Join_Room joinRoom = new Join_Room(user, room, token);
             joinRoomRepository.save(joinRoom);
-            return token;
+
         } catch (OpenViduJavaClientException | OpenViduHttpException e) {
             e.printStackTrace();
+
+            throw new OpenViduServerException();
         }
-        return null;
+
+        return token;
+
     }
 
     @Transactional
@@ -108,13 +114,12 @@ public class RoomService {
         List<Session> activeSessions = openVidu.getActiveSessions();
         Optional<Session> openViduSession = activeSessions.stream().filter(s -> s.getSessionId().equals(room.getSession())).findFirst();
         try {
-            openViduSession.orElseThrow().close();
+            openViduSession.orElseThrow(NoSuchSessionException::new).close();
         } catch (OpenViduJavaClientException | OpenViduHttpException e) {
-            throw new NoRoomSessionException();
+            e.printStackTrace();
+            throw new OpenViduServerException();
         }
         roomRepository.delete(room);
-        // 세션 삭제 처리
-
 
     }
 

@@ -4,34 +4,40 @@ import hanium.videoMeeting.DTO.RoomDto;
 import hanium.videoMeeting.advice.exception.ExistedRoomTitleException;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.repository.RoomRepository;
-import io.openvidu.java.client.*;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
+@TestMethodOrder(value = MethodOrderer.OrderAnnotation.class)
 class RoomServiceTest {
 
-    @Autowired private OpenVidu openVidu;
     @Autowired private RoomService roomService;
     @Autowired private RoomRepository roomRepository;
 
+    private static String session;
+
     @DisplayName("룸 생성 테스트")
     @Test
+    @Rollback(false)
+    @Order(1)
     public void createRoomTest() throws Exception {
         //given
-        RoomDto roomDto = new RoomDto("test","12345");
-        String session = roomService.create(roomDto,1L);
+        RoomDto roomDto = new RoomDto("roomTest","12345");
+        session = roomService.create(roomDto,1L);
 
         //when
         Room createdRoom = roomRepository.findBySession(session).orElse(null);
+
+        if(createdRoom == null){
+            fail("방을 생성하지 못했습니다.");
+        }
 
         //then
         assertThat(createdRoom).isNotNull();
@@ -42,20 +48,10 @@ class RoomServiceTest {
         System.out.println("생성 날짜 : " + createdRoom.getStart_time());
         System.out.println("세션 ID : " + createdRoom.getSession());
 
-
-        // 테스트를 위해 만든 세션 제거
-        List<Session> activeSessions = openVidu.getActiveSessions();
-        activeSessions.forEach(s -> {
-            try {
-                s.close();
-            } catch (OpenViduJavaClientException | OpenViduHttpException e) {
-                e.printStackTrace();
-            }
-        });
-
     }
     
     @Test
+    @Order(2)
     public void createDuplicateTitle() throws Exception {
         //given
         RoomDto roomDto = new RoomDto("duplicationTest","12345");
@@ -64,7 +60,11 @@ class RoomServiceTest {
         //when
         RoomDto dupRoomDto = new RoomDto("duplicationTest","789456");
         try{
-            roomService.create(dupRoomDto,1L);
+            String createdSession = roomService.create(dupRoomDto, 1L);
+
+            Room createdRoom = roomService.findRoomBySession(createdSession);
+
+            roomService.delete(createdRoom);
         } catch (ExistedRoomTitleException e){
             return;
         }
@@ -76,11 +76,10 @@ class RoomServiceTest {
 
     @DisplayName("방 참가 및 토큰 생성 예제")
     @Test
+    @Order(3)
     public void joinRoom() throws Exception {
         //given
-        RoomDto roomDto = new RoomDto("test","12345");
-        roomService.create(roomDto,1L);
-
+        RoomDto roomDto = new RoomDto("roomTest","12345");
         //when
         String token = roomService.join(roomDto,1L);
 
@@ -90,17 +89,23 @@ class RoomServiceTest {
     }
 
     @Test
-    public void openviduSessionList() throws Exception {
+    @Order(4)
+    @Rollback(false)
+    public void deleteRoom() throws Exception {
         //given
-        RoomDto roomDto = new RoomDto("test","12345");
-        roomService.create(roomDto,1L);
-        List<Session> activeSessions = openVidu.getActiveSessions();
-
-        activeSessions.forEach(s -> System.out.println(s.getSessionId()));
-
         //when
+        System.out.println("세션:::::"+session);
+        Room createdRoom = roomRepository.findBySession(session).orElse(null);
+        if(createdRoom == null){
+            fail("방을 찾지 못했습니다.");
+        }
+
+        roomService.delete(createdRoom);
 
         //then
+        Room afterDeleteRoom = roomRepository.findBySession(session).orElse(null);
+        assertThat(afterDeleteRoom).isNull();
+
     }
 
 
