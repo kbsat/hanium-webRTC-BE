@@ -4,33 +4,32 @@ import hanium.videoMeeting.DTO.RoomDto;
 import hanium.videoMeeting.advice.exception.ExistedRoomTitleException;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.repository.RoomRepository;
-import io.openvidu.java.client.*;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
+@TestMethodOrder(value = MethodOrderer.OrderAnnotation.class)
 class RoomServiceTest {
 
     @Autowired private RoomService roomService;
     @Autowired private RoomRepository roomRepository;
 
-    private String session;
+    private static String session;
 
     @DisplayName("룸 생성 테스트")
     @Test
+    @Rollback(false)
     @Order(1)
     public void createRoomTest() throws Exception {
         //given
-        RoomDto roomDto = new RoomDto("test","12345");
+        RoomDto roomDto = new RoomDto("roomTest","12345");
         session = roomService.create(roomDto,1L);
 
         //when
@@ -61,7 +60,11 @@ class RoomServiceTest {
         //when
         RoomDto dupRoomDto = new RoomDto("duplicationTest","789456");
         try{
-            roomService.create(dupRoomDto,1L);
+            String createdSession = roomService.create(dupRoomDto, 1L);
+
+            Room createdRoom = roomService.findRoomBySession(createdSession);
+
+            roomService.delete(createdRoom);
         } catch (ExistedRoomTitleException e){
             return;
         }
@@ -76,9 +79,7 @@ class RoomServiceTest {
     @Order(3)
     public void joinRoom() throws Exception {
         //given
-        RoomDto roomDto = new RoomDto("test","12345");
-        roomService.create(roomDto,1L);
-
+        RoomDto roomDto = new RoomDto("roomTest","12345");
         //when
         String token = roomService.join(roomDto,1L);
 
@@ -89,12 +90,14 @@ class RoomServiceTest {
 
     @Test
     @Order(4)
+    @Rollback(false)
     public void deleteRoom() throws Exception {
         //given
         //when
+        System.out.println("세션:::::"+session);
         Room createdRoom = roomRepository.findBySession(session).orElse(null);
         if(createdRoom == null){
-            fail("방을 생성하지 못했습니다.");
+            fail("방을 찾지 못했습니다.");
         }
 
         roomService.delete(createdRoom);
