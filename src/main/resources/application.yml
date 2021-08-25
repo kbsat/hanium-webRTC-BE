@@ -19,3 +19,15 @@ openvidu:
   secret: MY_SECRET
 
 secret: hanium0098
+
+cloud:
+  aws:
+    credentials:
+      accessKey: AKIAQKN3APRLAGDKQHPE
+      secretKey: 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
+    s3:
+      bucket: hanium-imagestorage
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false

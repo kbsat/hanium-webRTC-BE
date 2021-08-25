@@ -80,6 +80,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
-
+    @Transactional
+    public void changeProfileImage(String url,Long user_id) {
+        User user = userRepository.findById(user_id).orElseThrow(NoSuchUserException::new);
+        user.setImage(url);
+    }
 
 }

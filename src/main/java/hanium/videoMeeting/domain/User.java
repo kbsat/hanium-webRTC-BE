@@ -45,6 +45,7 @@ public class User {
         user.create_date= LocalDateTime.now();
         user.email= createUserDTO.getEmail();
         user.password= createUserDTO.getPassword();
+        user.image="https://hanium-imagestorage.s3.ap-northeast-2.amazonaws.com/static/basic.png";
         user.role = ROLE_USER;
         return user;
     }
@@ -55,5 +56,10 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setImage(String url){
+        this.image=url;
+
     }
 }
