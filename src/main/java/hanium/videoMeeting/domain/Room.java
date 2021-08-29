@@ -27,7 +27,6 @@ public class Room {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
     private String session;
 
     @Column(nullable = false)

@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,6 +44,13 @@ public class RoomService {
         Room room = new Room(host, roomDto.getTitle(), roomDto.getPassword());
 
         // 세션 생성
+        makeSession(room);
+
+        return room.getSession();
+    }
+
+    // 세션 생성
+    public void makeSession(Room room) {
         try {
             Session session = openVidu.createSession();
             room.connectSession(session.getSessionId());
@@ -60,10 +68,7 @@ public class RoomService {
 
             throw new OpenViduServerException();
         }
-
-        return room.getSession();
     }
-
 
     @Transactional
     public String join(RoomDto roomDto, Long userId) {
@@ -72,7 +77,21 @@ public class RoomService {
         String token = null;
 
         if (room.getSession() == null) {
-            throw new NoRoomSessionException();
+            //예약한 방이면 세션 할당
+            if (room.getIsReserved()) {
+                //예약시간과 현재시간을 비교
+                if (room.getStart_time().isBefore(LocalDateTime.now())) {
+                    // 세션 생성
+                    makeSession(room);
+                    log.info("예약한 방의 세션이 할당됐습니다.");
+                } else {
+                    log.warn("예약시간이 아직 되지 않았습니다.");
+                    throw new ReservationTimeMisMatchException();
+                }
+            } else {
+                //예약한 방이 아니면 오류
+                throw new NoRoomSessionException();
+            }
         }
 
         ConnectionProperties connectionProperties = new ConnectionProperties.Builder()
