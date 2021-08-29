@@ -108,4 +108,9 @@ public class ExceptionAdvice {
         return responseService.getFailResult(-2004, "해당 정보와 일치하는 방을 찾을 수 없습니다.");
     }
 
+    @ExceptionHandler(ExistedEmailAndNameException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result ExistedEmailAndNameException() {
+        return responseService.getFailResult(-1011, "닉네임과 이메일 모두 존재합니다 ");
+    }
 }

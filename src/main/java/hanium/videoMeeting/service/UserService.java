@@ -23,10 +23,13 @@ public class UserService {
 
     @Transactional
     public Long join(CreateUserDTO createUserDTO) {
-        if (userRepository.findByEmail(createUserDTO.getEmail()).isPresent()) {
+        boolean email=userRepository.existsByEmail(createUserDTO.getEmail());
+        boolean nickname=userRepository.existsByName(createUserDTO.getName());
+        if (email && nickname) {
+            throw new ExistedEmailAndNameException();
+        } else if (email) {
             throw new ExistedEmailException();
-        }
-        if (userRepository.findByName(createUserDTO.getName()).isPresent()) {
+        } else if (nickname) {
             throw new ExistedNameException();
         }
         if (!createUserDTO.getPassword().equals(createUserDTO.getCheckPassword())) {
