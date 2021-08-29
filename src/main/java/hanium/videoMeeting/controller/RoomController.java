@@ -2,7 +2,9 @@ package hanium.videoMeeting.controller;
 
 import hanium.videoMeeting.Config.auth.PrincipalDetails;
 import hanium.videoMeeting.DTO.ResponseRoomDto;
+import hanium.videoMeeting.DTO.ResponseRoomReserveDto;
 import hanium.videoMeeting.DTO.RoomDto;
+import hanium.videoMeeting.DTO.RoomReserveDto;
 import hanium.videoMeeting.DTO.response.Result;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.domain.User;
@@ -70,6 +72,19 @@ public class RoomController {
         } else {
             return responseService.getFailResult(-2000, "해당 방을 삭제할 권한이 없습니다.");
         }
+    }
+
+    @ApiOperation(value = "회의방 예약", notes = "회의방 예약 성공시 예약된 회의방 이름을 반환한다.")
+    @ApiImplicitParam(name = "X-AUTH-TOKEN", value = "access-token", required = true, dataType = "String", paramType = "header")
+    @PostMapping("/reserve")
+    public Result reserveRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @RequestBody RoomReserveDto roomReserveDto){
+        Long userId = principalDetails.getUser().getId();
+        String roomTitle = roomService.reserve(roomReserveDto, userId);
+
+        //front의 예약완료 메시지 대로 결과 출력
+        Room room = roomService.findRoomByTitle(roomTitle);
+        ResponseRoomReserveDto responseRoomReserveDto = ResponseRoomReserveDto.convertRoomToResponseRoomReserveDto(room);
+        return responseService.getSingleResult(responseRoomReserveDto);
     }
 
 }

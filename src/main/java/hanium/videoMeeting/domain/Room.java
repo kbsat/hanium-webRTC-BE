@@ -40,6 +40,9 @@ public class Room {
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
     private List<Join_Room> joinRooms = new ArrayList<>();
 
+    // 예약한 방인지 확인
+    private Boolean isReserved;
+
     public Room(User host, String title, String password) {
         this.host = host;
 
@@ -48,6 +51,18 @@ public class Room {
         this.start_time = LocalDateTime.now();
         this.session = null;
         this.people_num = 0;
+    }
+
+    public Room(User host, String title, String password, LocalDateTime reservedDate) {
+        this.host = host;
+
+        this.title = title;
+        this.password = password;
+        this.start_time = reservedDate;
+        this.session = null;
+        this.people_num = 0;
+
+        this.isReserved = true;
     }
 
     public void connectSession(String sessionId){
