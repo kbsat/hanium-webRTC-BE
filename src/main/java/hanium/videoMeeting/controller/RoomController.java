@@ -1,10 +1,7 @@
 package hanium.videoMeeting.controller;
 
 import hanium.videoMeeting.Config.auth.PrincipalDetails;
-import hanium.videoMeeting.DTO.ResponseRoomDto;
-import hanium.videoMeeting.DTO.ResponseRoomReserveDto;
-import hanium.videoMeeting.DTO.RoomDto;
-import hanium.videoMeeting.DTO.RoomReserveDto;
+import hanium.videoMeeting.DTO.*;
 import hanium.videoMeeting.DTO.response.Result;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.domain.User;
@@ -17,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Api(tags = {"Room"})
 @RestController
@@ -86,5 +85,17 @@ public class RoomController {
         ResponseRoomReserveDto responseRoomReserveDto = ResponseRoomReserveDto.convertRoomToResponseRoomReserveDto(room);
         return responseService.getSingleResult(responseRoomReserveDto);
     }
+
+    @GetMapping
+    public Result listRoom(@RequestParam(value = "page", defaultValue = "0") long page,
+                           @RequestParam(value = "size", defaultValue = "10") long size){
+        // 방 중 비밀번호가 공란이고 세션만료가 되지않은 방이 공개방.
+        List<RoomReadDto> roomPageDto = roomService.findRoomByPage((int) page, (int) size);
+        long count = roomService.countPublicRoom();
+
+        return responseService.getPageResult(roomPageDto, count, page);
+
+    }
+
 
 }

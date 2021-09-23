@@ -1,6 +1,7 @@
 package hanium.videoMeeting.service;
 
 import hanium.videoMeeting.DTO.RoomDto;
+import hanium.videoMeeting.DTO.RoomReadDto;
 import hanium.videoMeeting.DTO.RoomReserveDto;
 import hanium.videoMeeting.advice.exception.*;
 import hanium.videoMeeting.domain.Join_Room;
@@ -12,12 +13,15 @@ import hanium.videoMeeting.repository.UserRepository;
 import io.openvidu.java.client.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -172,4 +176,22 @@ public class RoomService {
         return room.getTitle();
     }
 
+    public List<RoomReadDto> findRoomByPage(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 세션이 발급된 방이고 비밀번호가 "" 인 방(공개방)을 찾음
+        List<Room> rooms = roomRepository.findByPage(pageable);
+
+        // 세션 만료되었는지 확인
+        List<RoomReadDto> roomReadDtoList = rooms.stream()
+                .filter(room -> room.getStart_time().plusHours(4).isAfter(LocalDateTime.now()) && room.getStart_time().isBefore(LocalDateTime.now()))
+                .map(RoomReadDto::new).collect(Collectors.toList());
+
+        return roomReadDtoList;
+
+    }
+
+    public long countPublicRoom(){
+        return roomRepository.countPublicRoom();
+    }
 }
