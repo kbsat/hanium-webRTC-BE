@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,6 +80,13 @@ public class RoomService {
     public String join(RoomDto roomDto, Long userId) {
         Room room = roomRepository.findByTitle(roomDto.getTitle()).orElseThrow(NoSuchRoomException::new);
         User user = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+
+        List<Join_Room> joinRooms = room.getJoinRooms();
+        List<Join_Room> isJoined = joinRooms.stream().filter(joinRoom -> Objects.equals(joinRoom.getUser().getId(), userId)).collect(Collectors.toList());
+        if (!isJoined.isEmpty()) {
+            throw new JoinDuplException();
+        }
+
         String token = null;
 
         if (room.getSession() == null) {
@@ -108,11 +117,8 @@ public class RoomService {
         Session session = activeSessions.stream()
                 .filter(s -> s.getSessionId().equals(room.getSession()))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(NoRoomSessionException::new);
 
-        if (session == null) {
-            throw new NoRoomSessionException();
-        }
         try {
             token = session.createConnection(connectionProperties).getToken();
 
@@ -147,15 +153,15 @@ public class RoomService {
 
     }
 
-    public Room findRoomById(Long roomId){
+    public Room findRoomById(Long roomId) {
         return roomRepository.findById(roomId).orElseThrow(NoSuchRoomException::new);
     }
 
-    public Room findRoomByTitle(String title){
+    public Room findRoomByTitle(String title) {
         return roomRepository.findByTitle(title).orElseThrow(NoSuchRoomException::new);
     }
 
-    public Room findRoomBySession(String session){
+    public Room findRoomBySession(String session) {
         return roomRepository.findBySession(session).orElseThrow(NoSuchRoomException::new);
     }
 
@@ -191,7 +197,27 @@ public class RoomService {
 
     }
 
-    public long countPublicRoom(){
+    public long countPublicRoom() {
         return roomRepository.countPublicRoom();
+    }
+
+    @Transactional
+    public boolean exit(Long userId, Long roomId) {
+        User nowUser = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+        Room nowRoom = roomRepository.findById(roomId).orElseThrow(NoSuchRoomException::new);
+
+        Join_Room joinRoom = joinRoomRepository.findByUserWithRoom(nowUser, nowRoom).orElseThrow(NoSuchJoinRoomException::new);
+
+        // 만약 호스트가 나간다면 방이 삭제된다.
+        if (Objects.equals(nowRoom.getHost().getId(), nowUser.getId())) {
+            delete(nowRoom);
+        }
+
+        // 호스트가 나가는 것이 아니라면 그냥 한명이 삭제된다.
+        boolean isRemoved = nowRoom.getJoinRooms().remove(joinRoom);
+        if (isRemoved) {
+            nowRoom.minusJoinPeople();
+        }
+        return isRemoved;
     }
 }

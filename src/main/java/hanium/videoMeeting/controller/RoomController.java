@@ -3,6 +3,7 @@ package hanium.videoMeeting.controller;
 import hanium.videoMeeting.Config.auth.PrincipalDetails;
 import hanium.videoMeeting.DTO.*;
 import hanium.videoMeeting.DTO.response.Result;
+import hanium.videoMeeting.advice.exception.NotWorkingExitException;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.domain.User;
 import hanium.videoMeeting.service.ResponseService;
@@ -76,7 +77,7 @@ public class RoomController {
     @ApiOperation(value = "회의방 예약", notes = "회의방 예약 성공시 예약된 회의방 이름을 반환한다.")
     @ApiImplicitParam(name = "X-AUTH-TOKEN", value = "access-token", required = true, dataType = "String", paramType = "header")
     @PostMapping("/reserve")
-    public Result reserveRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @RequestBody RoomReserveDto roomReserveDto){
+    public Result reserveRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @RequestBody RoomReserveDto roomReserveDto) {
         Long userId = principalDetails.getUser().getId();
         String roomTitle = roomService.reserve(roomReserveDto, userId);
 
@@ -86,15 +87,31 @@ public class RoomController {
         return responseService.getSingleResult(responseRoomReserveDto);
     }
 
+    @ApiOperation(value = "회의 공개방 목록", notes = "회의방 중 공개방의 목록을 보여준다. ( 비밀번호가 ''인 방 )")
+    @ApiImplicitParam(name = "X-AUTH-TOKEN", value = "access-token", required = false, dataType = "String", paramType = "header")
     @GetMapping
     public Result listRoom(@RequestParam(value = "page", defaultValue = "0") long page,
-                           @RequestParam(value = "size", defaultValue = "10") long size){
+                           @RequestParam(value = "size", defaultValue = "10") long size) {
         // 방 중 비밀번호가 공란이고 세션만료가 되지않은 방이 공개방.
         List<RoomReadDto> roomPageDto = roomService.findRoomByPage((int) page, (int) size);
         long count = roomService.countPublicRoom();
 
         return responseService.getPageResult(roomPageDto, count, page);
 
+    }
+
+    @ApiOperation(value = "방 나가기", notes = "방을 나간다. (join_room 삭제) 호스트가 나갈 경우 방이 삭제됨")
+    @ApiImplicitParam(name = "X-AUTH-TOKEN", value = "access-token", required = true, dataType = "String", paramType = "header")
+    @PostMapping("/exit/{roomId}")
+    public Result exitRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @PathVariable Long roomId) {
+        Long userId = principalDetails.getUser().getId();
+        boolean isExit = roomService.exit(userId, roomId);
+
+        if(isExit){
+            return responseService.getSuccessResult();
+        }else{
+            throw new NotWorkingExitException();
+        }
     }
 
 

@@ -54,6 +54,7 @@ public class ResponseService {
 
     public <T> PageResult<T> getPageResult(List<T> list, long total, long now){
         PageResult<T> result = new PageResult<>();
+        setSuccessResult(result);
         result.setData(list);
         result.setTotalCount(total);
         result.setNowPage(now);
