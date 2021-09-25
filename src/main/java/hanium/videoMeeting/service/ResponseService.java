@@ -1,6 +1,7 @@
 package hanium.videoMeeting.service;
 
 import hanium.videoMeeting.DTO.response.ListResult;
+import hanium.videoMeeting.DTO.response.PageResult;
 import hanium.videoMeeting.DTO.response.Result;
 import hanium.videoMeeting.DTO.response.SingleResult;
 import org.springframework.stereotype.Service;
@@ -49,5 +50,14 @@ public class ResponseService {
         result.setSuccess(true);
         result.setCode(0);
         result.setMsg("success");
+    }
+
+    public <T> PageResult<T> getPageResult(List<T> list, long total, long now){
+        PageResult<T> result = new PageResult<>();
+        setSuccessResult(result);
+        result.setData(list);
+        result.setTotalCount(total);
+        result.setNowPage(now);
+        return result;
     }
 }
