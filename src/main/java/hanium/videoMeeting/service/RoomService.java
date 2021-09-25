@@ -41,9 +41,24 @@ public class RoomService {
 
         User host = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
 
+
         // 일치하는 방제가 있는지 확인
-        if (roomRepository.findByTitle(roomDto.getTitle()).isPresent()) {
-            throw new ExistedRoomTitleException();
+        Room sameTitleRoom = roomRepository.findByTitle(roomDto.getTitle()).orElse(null);
+
+        if (sameTitleRoom != null) {
+            // - 아직 세션이 유효한 방인지 확인
+            List<Session> activeSessions = openVidu.getActiveSessions();
+            Session sameTitleRoomSession = activeSessions.stream()
+                    .filter(s -> s.getSessionId().equals(sameTitleRoom.getSession()))
+                    .findFirst()
+                    .orElse(null);
+
+            // 세션이 만료된 방이면 삭제 후 등록. 세션이 만료되지 않았다면 방 중복 오류
+            if (sameTitleRoomSession == null) {
+                roomRepository.delete(sameTitleRoom);
+            } else {
+                throw new ExistedRoomTitleException();
+            }
         }
 
         // host와 title, password를 입력하여 방 생성
@@ -117,20 +132,27 @@ public class RoomService {
         Session session = activeSessions.stream()
                 .filter(s -> s.getSessionId().equals(room.getSession()))
                 .findFirst()
-                .orElseThrow(NoRoomSessionException::new);
+                .orElse(null);
 
-        try {
-            token = session.createConnection(connectionProperties).getToken();
+        // 세션이 만료된 방이면 방 정보를 삭제함.
+        if (session == null) {
+            roomRepository.delete(room);
+        } else {
 
-            log.info("[Room : {}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
+            try {
+                token = session.createConnection(connectionProperties).getToken();
 
-            Join_Room joinRoom = new Join_Room(user, room, token);
-            joinRoomRepository.save(joinRoom);
+                log.info("[Room : {}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
 
-        } catch (OpenViduJavaClientException | OpenViduHttpException e) {
-            e.printStackTrace();
+                Join_Room joinRoom = new Join_Room(user, room, token);
+                joinRoomRepository.save(joinRoom);
 
-            throw new OpenViduServerException();
+            } catch (OpenViduJavaClientException | OpenViduHttpException e) {
+                e.printStackTrace();
+
+                throw new OpenViduServerException();
+            }
+
         }
 
         return token;
@@ -142,14 +164,21 @@ public class RoomService {
         // CASCADE 설정이 되어있으므로 room을 삭제하면 이와 연관된 Join_Room도 삭제됨
 
         List<Session> activeSessions = openVidu.getActiveSessions();
-        Optional<Session> openViduSession = activeSessions.stream().filter(s -> s.getSessionId().equals(room.getSession())).findFirst();
+        Session openViduSession = activeSessions.stream()
+                .filter(s -> s.getSessionId().equals(room.getSession()))
+                .findFirst()
+                .orElse(null);
+
         try {
-            openViduSession.orElseThrow(NoSuchSessionException::new).close();
+            if (openViduSession != null) {
+                openViduSession.close();
+            }
         } catch (OpenViduJavaClientException | OpenViduHttpException e) {
             e.printStackTrace();
             throw new OpenViduServerException();
+        } finally {
+            roomRepository.delete(room);
         }
-        roomRepository.delete(room);
 
     }
 

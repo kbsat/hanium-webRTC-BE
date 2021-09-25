@@ -3,6 +3,7 @@ package hanium.videoMeeting.controller;
 import hanium.videoMeeting.Config.auth.PrincipalDetails;
 import hanium.videoMeeting.DTO.*;
 import hanium.videoMeeting.DTO.response.Result;
+import hanium.videoMeeting.advice.exception.NoSuchRoomException;
 import hanium.videoMeeting.advice.exception.NotWorkingExitException;
 import hanium.videoMeeting.domain.Room;
 import hanium.videoMeeting.domain.User;
@@ -43,6 +44,10 @@ public class RoomController {
     public Result joinRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @RequestBody RoomDto roomDto) {
         String token = roomService.join(roomDto, principalDetails.getUser().getId());
 
+        // 방이 세션 타임이 지나서 사라졌을 경우
+        if (token == null) {
+            throw new NoSuchRoomException();
+        }
         return responseService.getSingleResult(token);
     }
 
@@ -107,9 +112,9 @@ public class RoomController {
         Long userId = principalDetails.getUser().getId();
         boolean isExit = roomService.exit(userId, roomId);
 
-        if(isExit){
+        if (isExit) {
             return responseService.getSuccessResult();
-        }else{
+        } else {
             throw new NotWorkingExitException();
         }
     }
