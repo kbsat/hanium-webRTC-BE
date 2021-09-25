@@ -33,10 +33,10 @@ public class Room {
     private long people_num;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="host_id")
+    @JoinColumn(name = "host_id")
     private User host;
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Join_Room> joinRooms = new ArrayList<>();
 
     // 예약한 방인지 확인
@@ -64,13 +64,20 @@ public class Room {
         this.isReserved = true;
     }
 
-    public void connectSession(String sessionId){
+    public void connectSession(String sessionId) {
         this.session = sessionId;
     }
 
     // TODO 동시성 문제가 발생하지 않을까?
-    public void plusJoinPeople(){
+    public void plusJoinPeople() {
         this.people_num += 1;
     }
 
+    public void minusJoinPeople() {
+        this.people_num -= 1;
+    }
+
+    public void reserveDone(){
+        this.isReserved = null;
+    }
 }

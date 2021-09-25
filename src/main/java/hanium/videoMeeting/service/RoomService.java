@@ -1,6 +1,7 @@
 package hanium.videoMeeting.service;
 
 import hanium.videoMeeting.DTO.RoomDto;
+import hanium.videoMeeting.DTO.RoomReadDto;
 import hanium.videoMeeting.DTO.RoomReserveDto;
 import hanium.videoMeeting.advice.exception.*;
 import hanium.videoMeeting.domain.Join_Room;
@@ -12,12 +13,15 @@ import hanium.videoMeeting.repository.UserRepository;
 import io.openvidu.java.client.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -35,9 +39,16 @@ public class RoomService {
 
         User host = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
 
+
         // 일치하는 방제가 있는지 확인
-        if (roomRepository.findByTitle(roomDto.getTitle()).isPresent()) {
-            throw new ExistedRoomTitleException();
+        Room sameTitleRoom = roomRepository.findByTitle(roomDto.getTitle()).orElse(null);
+
+        if (sameTitleRoom != null) {
+            // - 예약된 방인지 확인
+            if(sameTitleRoom.getIsReserved() != null){
+                throw new ExistedRoomTitleException();
+            }
+            checkSameTitleRoomSessionDone(sameTitleRoom);
         }
 
         // host와 title, password를 입력하여 방 생성
@@ -49,7 +60,6 @@ public class RoomService {
         return room.getSession();
     }
 
-    // 세션 생성
     public void makeSession(Room room) {
         try {
             Session session = openVidu.createSession();
@@ -69,20 +79,28 @@ public class RoomService {
             throw new OpenViduServerException();
         }
     }
-
     @Transactional
     public String join(RoomDto roomDto, Long userId) {
         Room room = roomRepository.findByTitle(roomDto.getTitle()).orElseThrow(NoSuchRoomException::new);
         User user = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+
+        List<Join_Room> joinRooms = room.getJoinRooms();
+        List<Join_Room> isJoined = joinRooms.stream().filter(joinRoom -> Objects.equals(joinRoom.getUser().getId(), userId)).collect(Collectors.toList());
+        if (!isJoined.isEmpty()) {
+            throw new JoinDuplException();
+        }
+
         String token = null;
 
+        // 예약방 세션 할당
+
         if (room.getSession() == null) {
-            //예약한 방이면 세션 할당
             if (room.getIsReserved()) {
                 //예약시간과 현재시간을 비교
                 if (room.getStart_time().isBefore(LocalDateTime.now())) {
                     // 세션 생성
                     makeSession(room);
+                    room.reserveDone(); // 일반 방처럼 isReserved 제거
                     log.info("예약한 방의 세션이 할당됐습니다.");
                 } else {
                     log.warn("예약시간이 아직 되지 않았습니다.");
@@ -104,23 +122,27 @@ public class RoomService {
         Session session = activeSessions.stream()
                 .filter(s -> s.getSessionId().equals(room.getSession()))
                 .findFirst()
-                .orElseThrow();
+                .orElse(null);
 
+        // 세션이 만료된 방이면 방 정보를 삭제함.
         if (session == null) {
-            throw new NoRoomSessionException();
-        }
-        try {
-            token = session.createConnection(connectionProperties).getToken();
+            roomRepository.delete(room);
+        } else {
 
-            log.info("[Room : {}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
+            try {
+                token = session.createConnection(connectionProperties).getToken();
 
-            Join_Room joinRoom = new Join_Room(user, room, token);
-            joinRoomRepository.save(joinRoom);
+                log.info("[Room : {}] {} 세션에서 토큰 발행 : {}", room.getTitle(), room.getSession(), token);
 
-        } catch (OpenViduJavaClientException | OpenViduHttpException e) {
-            e.printStackTrace();
+                Join_Room joinRoom = new Join_Room(user, room, token);
+                joinRoomRepository.save(joinRoom);
 
-            throw new OpenViduServerException();
+            } catch (OpenViduJavaClientException | OpenViduHttpException e) {
+                e.printStackTrace();
+
+                throw new OpenViduServerException();
+            }
+
         }
 
         return token;
@@ -132,26 +154,33 @@ public class RoomService {
         // CASCADE 설정이 되어있으므로 room을 삭제하면 이와 연관된 Join_Room도 삭제됨
 
         List<Session> activeSessions = openVidu.getActiveSessions();
-        Optional<Session> openViduSession = activeSessions.stream().filter(s -> s.getSessionId().equals(room.getSession())).findFirst();
+        Session openViduSession = activeSessions.stream()
+                .filter(s -> s.getSessionId().equals(room.getSession()))
+                .findFirst()
+                .orElse(null);
+
         try {
-            openViduSession.orElseThrow(NoSuchSessionException::new).close();
+            if (openViduSession != null) {
+                openViduSession.close();
+            }
         } catch (OpenViduJavaClientException | OpenViduHttpException e) {
             e.printStackTrace();
             throw new OpenViduServerException();
+        } finally {
+            roomRepository.delete(room);
         }
-        roomRepository.delete(room);
 
     }
 
-    public Room findRoomById(Long roomId){
+    public Room findRoomById(Long roomId) {
         return roomRepository.findById(roomId).orElseThrow(NoSuchRoomException::new);
     }
 
-    public Room findRoomByTitle(String title){
+    public Room findRoomByTitle(String title) {
         return roomRepository.findByTitle(title).orElseThrow(NoSuchRoomException::new);
     }
 
-    public Room findRoomBySession(String session){
+    public Room findRoomBySession(String session) {
         return roomRepository.findBySession(session).orElseThrow(NoSuchRoomException::new);
     }
 
@@ -159,10 +188,18 @@ public class RoomService {
     public String reserve(RoomReserveDto roomReserveDto, Long userId) {
 
         User host = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+        Room sameTitleRoom = roomRepository.findByTitle(roomReserveDto.getTitle()).orElse(null);
 
-        // 일치하는 방제가 있는지 확인
-        if (roomRepository.findByTitle(roomReserveDto.getTitle()).isPresent()) {
-            throw new ExistedRoomTitleException();
+        if (sameTitleRoom != null) {
+            // - 예약된 방인지 확인
+            if(sameTitleRoom.getIsReserved() != null){
+                throw new ExistedRoomTitleException();
+            }
+            checkSameTitleRoomSessionDone(sameTitleRoom);
+        }
+
+        if(roomReserveDto.getPassword().equals("")){
+            throw new NoRoomPasswordException();
         }
 
         // host와 title, password, isReserved, reservationTime을 입력하여 방 생성
@@ -172,4 +209,59 @@ public class RoomService {
         return room.getTitle();
     }
 
+    public List<RoomReadDto> findRoomByPage(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 세션이 발급된 방이고 비밀번호가 "" 인 방(공개방)을 찾음
+        List<Room> rooms = roomRepository.findByPage(pageable);
+
+        // 세션 만료되었는지 확인
+        List<RoomReadDto> roomReadDtoList = rooms.stream()
+                .filter(room -> room.getStart_time().plusHours(4).isAfter(LocalDateTime.now()) && room.getStart_time().isBefore(LocalDateTime.now()))
+                .map(RoomReadDto::new).collect(Collectors.toList());
+
+        return roomReadDtoList;
+
+    }
+
+    public long countPublicRoom() {
+        return roomRepository.countPublicRoom();
+    }
+
+    @Transactional
+    public boolean exit(Long userId, Long roomId) {
+        User nowUser = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+        Room nowRoom = roomRepository.findById(roomId).orElseThrow(NoSuchRoomException::new);
+
+        Join_Room joinRoom = joinRoomRepository.findByUserWithRoom(nowUser, nowRoom).orElseThrow(NoSuchJoinRoomException::new);
+
+        // 만약 호스트가 나간다면 방이 삭제된다.
+        if (Objects.equals(nowRoom.getHost().getId(), nowUser.getId())) {
+            delete(nowRoom);
+        }
+
+        // 호스트가 나가는 것이 아니라면 그냥 한명이 삭제된다.
+        boolean isRemoved = nowRoom.getJoinRooms().remove(joinRoom);
+        if (isRemoved) {
+            nowRoom.minusJoinPeople();
+        }
+        return isRemoved;
+    }
+
+    // 세션이 현재 존재하는 방인지 확인하고 만료된 방이라면 해당 방을 삭제한다.
+    private void checkSameTitleRoomSessionDone(Room sameTitleRoom) {
+        // - 아직 세션이 유효한 방인지 확인
+        List<Session> activeSessions = openVidu.getActiveSessions();
+        Session sameTitleRoomSession = activeSessions.stream()
+                .filter(s -> s.getSessionId().equals(sameTitleRoom.getSession()))
+                .findFirst()
+                .orElse(null);
+
+        // 세션이 만료된 방이면 삭제 후 등록. 세션이 만료되지 않았다면 방 중복 오류
+        if (sameTitleRoomSession == null) {
+            roomRepository.delete(sameTitleRoom);
+        } else {
+            throw new ExistedRoomTitleException();
+        }
+    }
 }
