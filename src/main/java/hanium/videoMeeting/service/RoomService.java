@@ -21,8 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,19 +44,11 @@ public class RoomService {
         Room sameTitleRoom = roomRepository.findByTitle(roomDto.getTitle()).orElse(null);
 
         if (sameTitleRoom != null) {
-            // - 아직 세션이 유효한 방인지 확인
-            List<Session> activeSessions = openVidu.getActiveSessions();
-            Session sameTitleRoomSession = activeSessions.stream()
-                    .filter(s -> s.getSessionId().equals(sameTitleRoom.getSession()))
-                    .findFirst()
-                    .orElse(null);
-
-            // 세션이 만료된 방이면 삭제 후 등록. 세션이 만료되지 않았다면 방 중복 오류
-            if (sameTitleRoomSession == null) {
-                roomRepository.delete(sameTitleRoom);
-            } else {
+            // - 예약된 방인지 확인
+            if(sameTitleRoom.getIsReserved() != null){
                 throw new ExistedRoomTitleException();
             }
+            checkSameTitleRoomSessionDone(sameTitleRoom);
         }
 
         // host와 title, password를 입력하여 방 생성
@@ -70,7 +60,6 @@ public class RoomService {
         return room.getSession();
     }
 
-    // 세션 생성
     public void makeSession(Room room) {
         try {
             Session session = openVidu.createSession();
@@ -90,7 +79,6 @@ public class RoomService {
             throw new OpenViduServerException();
         }
     }
-
     @Transactional
     public String join(RoomDto roomDto, Long userId) {
         Room room = roomRepository.findByTitle(roomDto.getTitle()).orElseThrow(NoSuchRoomException::new);
@@ -104,13 +92,15 @@ public class RoomService {
 
         String token = null;
 
+        // 예약방 세션 할당
+
         if (room.getSession() == null) {
-            //예약한 방이면 세션 할당
             if (room.getIsReserved()) {
                 //예약시간과 현재시간을 비교
                 if (room.getStart_time().isBefore(LocalDateTime.now())) {
                     // 세션 생성
                     makeSession(room);
+                    room.reserveDone(); // 일반 방처럼 isReserved 제거
                     log.info("예약한 방의 세션이 할당됐습니다.");
                 } else {
                     log.warn("예약시간이 아직 되지 않았습니다.");
@@ -198,10 +188,18 @@ public class RoomService {
     public String reserve(RoomReserveDto roomReserveDto, Long userId) {
 
         User host = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
+        Room sameTitleRoom = roomRepository.findByTitle(roomReserveDto.getTitle()).orElse(null);
 
-        // 일치하는 방제가 있는지 확인
-        if (roomRepository.findByTitle(roomReserveDto.getTitle()).isPresent()) {
-            throw new ExistedRoomTitleException();
+        if (sameTitleRoom != null) {
+            // - 예약된 방인지 확인
+            if(sameTitleRoom.getIsReserved() != null){
+                throw new ExistedRoomTitleException();
+            }
+            checkSameTitleRoomSessionDone(sameTitleRoom);
+        }
+
+        if(roomReserveDto.getPassword().equals("")){
+            throw new NoRoomPasswordException();
         }
 
         // host와 title, password, isReserved, reservationTime을 입력하여 방 생성
@@ -248,5 +246,22 @@ public class RoomService {
             nowRoom.minusJoinPeople();
         }
         return isRemoved;
+    }
+
+    // 세션이 현재 존재하는 방인지 확인하고 만료된 방이라면 해당 방을 삭제한다.
+    private void checkSameTitleRoomSessionDone(Room sameTitleRoom) {
+        // - 아직 세션이 유효한 방인지 확인
+        List<Session> activeSessions = openVidu.getActiveSessions();
+        Session sameTitleRoomSession = activeSessions.stream()
+                .filter(s -> s.getSessionId().equals(sameTitleRoom.getSession()))
+                .findFirst()
+                .orElse(null);
+
+        // 세션이 만료된 방이면 삭제 후 등록. 세션이 만료되지 않았다면 방 중복 오류
+        if (sameTitleRoomSession == null) {
+            roomRepository.delete(sameTitleRoom);
+        } else {
+            throw new ExistedRoomTitleException();
+        }
     }
 }

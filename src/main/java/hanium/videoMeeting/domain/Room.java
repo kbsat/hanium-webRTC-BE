@@ -76,4 +76,8 @@ public class Room {
     public void minusJoinPeople() {
         this.people_num -= 1;
     }
+
+    public void reserveDone(){
+        this.isReserved = null;
+    }
 }

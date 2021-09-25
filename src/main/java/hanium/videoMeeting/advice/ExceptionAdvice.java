@@ -35,6 +35,7 @@ public class ExceptionAdvice {
     public Result AuthenticationEntryPointException() {
         return responseService.getFailResult(-1002, "인증정보가 유효하지 않습니다.");
     }
+
     @ExceptionHandler(ExistedEmailException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result ExistedEmailException() {
@@ -58,20 +59,25 @@ public class ExceptionAdvice {
     public Result DuplicateNameException() {
         return responseService.getFailResult(-1006, "이미 존재하는 이름입니다.");
     }
+
     @ExceptionHandler(CurrentPasswordDiffException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result CurrentPasswordDiffException() {
         return responseService.getFailResult(-1007, "현재 비밀번호가 틀렸습니다");
-    }@ExceptionHandler(PasswordWrongException.class)
+    }
+
+    @ExceptionHandler(PasswordWrongException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result PasswordWrongException() {
         return responseService.getFailResult(-1008, "비밀번호가 틀렸습니다.");
     }
+
     @ExceptionHandler(PasswordNoChangeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result PasswordNoChangeException() {
         return responseService.getFailResult(-1009, "이전과 같은 비밀번호입니다");
     }
+
     @ExceptionHandler(PasswordDiffException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result PasswordDiffException() {
@@ -126,6 +132,11 @@ public class ExceptionAdvice {
         return responseService.getFailResult(-2007, "중복된 방 참여는 불가능합니다.");
     }
 
+    @ExceptionHandler(NoRoomPasswordException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Result NoRoomPasswordException() {
+        return responseService.getFailResult(-2008, "방예약은 비밀번호가 필수입니다.");
+    }
 
     @ExceptionHandler(ExistedEmailAndNameException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
