@@ -1,5 +1,6 @@
 package hanium.videoMeeting.service;
 
+import hanium.videoMeeting.DTO.ReserveMailDto;
 import hanium.videoMeeting.DTO.RoomDto;
 import hanium.videoMeeting.DTO.RoomReadDto;
 import hanium.videoMeeting.DTO.RoomReserveDto;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.mail.MessagingException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -33,19 +35,19 @@ public class RoomService {
     private final UserRepository userRepository;
     private final JoinRoomRepository joinRoomRepository;
     private final OpenVidu openVidu;
+    private final MailService mailService;
 
     @Transactional
     public String create(RoomDto roomDto, Long userId) {
 
         User host = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
 
-
         // 일치하는 방제가 있는지 확인
         Room sameTitleRoom = roomRepository.findByTitle(roomDto.getTitle()).orElse(null);
 
         if (sameTitleRoom != null) {
             // - 예약된 방인지 확인
-            if(sameTitleRoom.getIsReserved() != null){
+            if (sameTitleRoom.getIsReserved() != null) {
                 throw new ExistedRoomTitleException();
             }
             checkSameTitleRoomSessionDone(sameTitleRoom);
@@ -79,6 +81,7 @@ public class RoomService {
             throw new OpenViduServerException();
         }
     }
+
     @Transactional
     public String join(RoomDto roomDto, Long userId) {
         Room room = roomRepository.findByTitle(roomDto.getTitle()).orElseThrow(NoSuchRoomException::new);
@@ -192,13 +195,13 @@ public class RoomService {
 
         if (sameTitleRoom != null) {
             // - 예약된 방인지 확인
-            if(sameTitleRoom.getIsReserved() != null){
+            if (sameTitleRoom.getIsReserved() != null) {
                 throw new ExistedRoomTitleException();
             }
             checkSameTitleRoomSessionDone(sameTitleRoom);
         }
 
-        if(roomReserveDto.getPassword().equals("")){
+        if (roomReserveDto.getPassword().equals("")) {
             throw new NoRoomPasswordException();
         }
 
@@ -263,5 +266,42 @@ public class RoomService {
         } else {
             throw new ExistedRoomTitleException();
         }
+    }
+
+    // 현재 시간에 실행되는 예약방을 찾음
+    public List<ReserveMailDto> findReserveRoomByNowTime() {
+        LocalDateTime nowTime = LocalDateTime.now();
+        LocalDateTime startTime = LocalDateTime.of(nowTime.getYear(), nowTime.getMonth(), nowTime.getDayOfMonth(), nowTime.getHour(), nowTime.getMinute(), 0);
+        LocalDateTime endTime = LocalDateTime.of(nowTime.getYear(), nowTime.getMonth(), nowTime.getDayOfMonth(), nowTime.getHour(), nowTime.getMinute(), 59);
+
+        List<Room> reservedRooms = roomRepository.findReservedRoomsBetweenTime(startTime, endTime);
+        List<ReserveMailDto> reserveMailDtos = null;
+        if(!reservedRooms.isEmpty()){
+            reserveMailDtos = reservedRooms.stream()
+                    .map(room -> ReserveMailDto
+                            .builder()
+                            .reserveTime(room.getStart_time())
+                            .roomName(room.getTitle())
+                            .roomHostName(room.getHost().getName())
+                            .email(room.getHost().getEmail())
+                            .build()).collect(Collectors.toList());
+        }
+
+        return reserveMailDtos;
+    }
+
+    public void sendReserveMail(){
+        List<ReserveMailDto> reservedRoomMailDtos = findReserveRoomByNowTime();
+
+        if(reservedRoomMailDtos != null){
+            reservedRoomMailDtos.forEach(reservedRoomMailDto -> {
+                try {
+                    mailService.sendReserveMail(reservedRoomMailDto);
+                } catch (MessagingException e) {
+                    log.warn("예약메일 발송 실패");
+                }
+            });
+        }
+
     }
 }
