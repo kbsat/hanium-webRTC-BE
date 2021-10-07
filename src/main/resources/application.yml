@@ -10,7 +10,7 @@ spring:
     properties:
       hibernate:
         show_sql:
-        format_sql: true
+        format_sql: false # 배포 시 false로 설정
   mail:
     host: smtp.gmail.com
     port: 587
@@ -23,7 +23,9 @@ spring:
           starttls:
             enable: true
 logging.level:
-  org.hibernate.SQL: debug
+  root: info
+#  org.hibernate.SQL: debug
+# 배포시 hibernate.SQL 주석처리
 
 openvidu:
   url: https://15.165.67.176:443/

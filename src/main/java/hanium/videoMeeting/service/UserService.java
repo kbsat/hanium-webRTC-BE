@@ -62,7 +62,7 @@ public class UserService {
             throw new PasswordDiffException();
         }
         user.setPassword(bCryptPasswordEncoder.encode(updatePasswordDTO.getNew_password()));
-        System.out.println(user.getPassword());
+//        System.out.println(user.getPassword());
     }
 
     public Optional<User> findUserByName(String name) {
@@ -70,7 +70,7 @@ public class UserService {
     }
 
     public User findUserByEmail(String email) {
-        System.out.println(email);
+//        System.out.println(email);
         return userRepository.findByEmail(email).orElseThrow(NoSuchUserException::new);
     }
 
