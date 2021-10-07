@@ -107,10 +107,10 @@ public class RoomController {
 
     @ApiOperation(value = "방 나가기", notes = "방을 나간다. (join_room 삭제) 호스트가 나갈 경우 방이 삭제됨")
     @ApiImplicitParam(name = "X-AUTH-TOKEN", value = "access-token", required = true, dataType = "String", paramType = "header")
-    @PostMapping("/exit/{roomId}")
-    public Result exitRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @PathVariable Long roomId) {
+    @PostMapping("/exit/{session}")
+    public Result exitRoom(@AuthenticationPrincipal PrincipalDetails principalDetails, @PathVariable String session) {
         Long userId = principalDetails.getUser().getId();
-        boolean isExit = roomService.exit(userId, roomId);
+        boolean isExit = roomService.exit(userId, session);
 
         if (isExit) {
             return responseService.getSuccessResult();
