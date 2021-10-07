@@ -232,9 +232,9 @@ public class RoomService {
     }
 
     @Transactional
-    public boolean exit(Long userId, Long roomId) {
+    public boolean exit(Long userId, String session) {
         User nowUser = userRepository.findById(userId).orElseThrow(NoSuchUserException::new);
-        Room nowRoom = roomRepository.findById(roomId).orElseThrow(NoSuchRoomException::new);
+        Room nowRoom = roomRepository.findBySession(session).orElseThrow(NoSuchRoomException::new);
 
         Join_Room joinRoom = joinRoomRepository.findByUserWithRoom(nowUser, nowRoom).orElseThrow(NoSuchJoinRoomException::new);
 
