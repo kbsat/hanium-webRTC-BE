@@ -99,7 +99,7 @@ public class RoomController {
                            @RequestParam(value = "size", defaultValue = "10") long size) {
         // 방 중 비밀번호가 공란이고 세션만료가 되지않은 방이 공개방.
         List<RoomReadDto> roomPageDto = roomService.findRoomByPage((int) page, (int) size);
-        long count = roomService.countPublicRoom();
+        long count = roomPageDto.size();
 
         return responseService.getPageResult(roomPageDto, count, page);
 

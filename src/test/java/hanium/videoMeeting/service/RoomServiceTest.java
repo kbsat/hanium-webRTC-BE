@@ -120,6 +120,10 @@ class RoomServiceTest {
         RoomReserveDto roomReserveDto = new RoomReserveDto("testTitle", "1", reservationTime);
 
         //when
+        Room testTitle = roomService.findRoomByTitle("testTitle");
+        if(testTitle != null){
+            roomService.delete(testTitle);
+        }
         String reservedRoomTitle = roomService.reserve(roomReserveDto, 1L);
         Room createdRoom = roomService.findRoomByTitle(reservedRoomTitle);
 

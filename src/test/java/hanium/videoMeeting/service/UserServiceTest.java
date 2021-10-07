@@ -3,6 +3,7 @@ package hanium.videoMeeting.service;
 import hanium.videoMeeting.DTO.CreateUserDTO;
 import hanium.videoMeeting.DTO.UpdateNameDto;
 import hanium.videoMeeting.DTO.UpdatePasswordDTO;
+import hanium.videoMeeting.advice.exception.ExistedEmailAndNameException;
 import hanium.videoMeeting.advice.exception.NoSuchUserException;
 import hanium.videoMeeting.domain.User;
 import hanium.videoMeeting.repository.UserRepository;
@@ -25,10 +26,16 @@ class UserServiceTest {
     @Autowired UserService userService;
     @Autowired UserRepository userRepository;
     @Autowired BCryptPasswordEncoder bCryptPasswordEncoder;
+
     @BeforeEach
     public void pre() {
-        CreateUserDTO createUserDTO=new CreateUserDTO("test@naver.com","12345","12345", "test");
-        userService.join(createUserDTO);
+        CreateUserDTO createUserDTO = new CreateUserDTO("test@naver.com", "12345", "12345", "test");
+
+        try {
+            userService.join(createUserDTO);
+        }catch(ExistedEmailAndNameException e){
+            System.out.println("이미 생성된 test@naver.com");
+        }
     }
 
     @Test

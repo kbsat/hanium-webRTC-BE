@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ResponseRoomDto {
+    private Long roomId;
     private String title;
     private String password;
     private LocalDateTime startTime;
@@ -19,7 +20,8 @@ public class ResponseRoomDto {
     private Long host_id;
 
     public static ResponseRoomDto convertRoomToResponseRoomDto(Room room) {
-       return ResponseRoomDto.builder()
+        return ResponseRoomDto.builder()
+                .roomId(room.getId())
                 .title(room.getTitle())
                 .password(room.getPassword())
                 .startTime(room.getStart_time())
